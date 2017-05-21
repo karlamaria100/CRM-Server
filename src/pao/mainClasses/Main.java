@@ -1,4 +1,4 @@
-package karla.pao.mainClasses;
+package pao.mainClasses;
 
 public class Main {
 

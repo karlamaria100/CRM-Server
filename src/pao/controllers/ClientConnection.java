@@ -1,6 +1,6 @@
-package karla.pao.controllers;
+package pao.controllers;
 
-import karla.pao.ConnectionData;
+import pao.ConnectionData;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

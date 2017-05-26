@@ -20,7 +20,6 @@ public class DataBaseConnection {
         try {
             Class.forName("com.mysql.jdbc.Driver");
             connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/crm?autoReconnect=true&useSSL=false","root", "Karlaroot2!");
-
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -34,12 +33,14 @@ public class DataBaseConnection {
             statement.setInt(1, client);
             ResultSet rs = statement.executeQuery();
             ResultSet rs1;
+            int x;
             while (rs.next()){
                 Factura factura = new Factura();
                 statement1.setInt(1, rs.getInt("idFactura"));
+                factura.setID(rs.getInt("idFactura"));
                 rs1 = statement1.executeQuery();
                 while (rs1.next()){
-                    factura.add(rs1.getString("nume"), rs1.getDouble("cantitate"),  rs1.getDouble("pret") , rs1.getInt("idProdus"), rs1.getBoolean("serviciu"));
+                    factura.add(rs1.getString("nume"), rs1.getDouble("cantitate"),  rs1.getDouble("pret") , rs1.getInt("idProdus"),  rs1.getBoolean("serviciu"));
                 }
                 arrayList.add(factura);
                 rs1.close();
@@ -60,9 +61,10 @@ public class DataBaseConnection {
             ArrayList<Sale> arrayList = new ArrayList<>();
             while (rs.next()){
                 Sale sale = new Sale(rs.getDouble("stock"), rs.getDouble("pret"), rs.getString("cumparator"));
+                System.out.println(sale.getBuyer());
                 arrayList.add(sale);
             }
-            rs.next();
+            rs.close();
             return arrayList;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -97,7 +99,7 @@ public class DataBaseConnection {
             statement.setInt(1,idProduct);
             statement.setString(2, product.getName());
             if(product.isServices())
-                statement.setDouble(3, 1000);
+                statement.setDouble(3, 0);
             else
                 statement.setDouble(3, product.getQuantity());
             statement.setDouble(4, product.getPrice());
@@ -127,8 +129,9 @@ public class DataBaseConnection {
                 statement1.executeUpdate();
 
                 Product product1 = hasProduct(product.getName());
+                Client client = selectClient(idClient);
                 editProduct(product.getId(), product1.getQuantity() - product.getQuantity(), product.getPrice());
-                addSale(product.getId(), -product.getQuantity(), product.getPrice(), product.getName());
+                addSale(product.getId(), -product.getQuantity(), product.getPrice(), client.getFullName());
             }
 
         } catch (SQLException e) {
@@ -165,6 +168,40 @@ public class DataBaseConnection {
             e.printStackTrace();
         }
         return arrayList;
+    }
+
+    public Client selectClient(int idClient){
+        if(Customer.isCustomer(idClient)) return selectCustomer(idClient);
+        if(Company.isCompany(idClient)) return selectCompany(idClient);
+        return null;
+    }
+
+    public Customer selectCustomer(int idCustomer){
+        try (PreparedStatement statement = connection.prepareStatement(DatabaseData.selectCustomer);){
+             statement.setInt(1, idCustomer);
+             ResultSet rs = statement.executeQuery();
+            if(rs.next()){
+                return new Customer(rs.getString("nume"), rs.getString("prenume"), rs.getInt("idpersoana_fizica"));
+            }
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Company selectCompany(int idCompany){
+        try (PreparedStatement statement = connection.prepareStatement(DatabaseData.selectCompany)){
+             statement.setInt(1, idCompany);
+             ResultSet rs = statement.executeQuery();
+            if (rs.next()){
+                return new Company(rs.getString("nume"), rs.getInt("idpersoana_juridica"));
+            }
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void selectCustomers(ArrayList<Client> arrayList){
@@ -228,7 +265,7 @@ public class DataBaseConnection {
             statement1.setInt(1, idProduct);
             ResultSet rs = statement1.executeQuery();
             if(rs.next())
-                if(rs.getInt("stock") == -stock && rs.getBoolean("serviciu") == true) stock = 1000;
+                if( stock < 0 && rs.getBoolean("serviciu") == true) stock = 0;
 
             statement.setDouble(1, stock);
             statement.setDouble(2, pret);
@@ -263,7 +300,6 @@ public class DataBaseConnection {
     }
 
     public void editCustomer(int idClient, String nume, String prenume){
-        //TODO verificare daca e customer sau company
         try (PreparedStatement statement = connection.prepareStatement(DatabaseData.updateCustomer)){
             statement.setString(1, nume);
             statement.setString(2, prenume);
@@ -275,4 +311,11 @@ public class DataBaseConnection {
 
     }
 
+    public void close(){
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

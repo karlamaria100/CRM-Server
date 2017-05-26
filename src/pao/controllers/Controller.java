@@ -1,7 +1,13 @@
 package pao.controllers;
 
 import pao.Model.*;
+import pao.mainClasses.Server;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,27 +20,25 @@ import java.util.Random;
 public class Controller {
 
     private DatabaseController databaseController;
-    private static Controller instance;
     private ClientConnection connection;
     private MessageInterpreter messageInterpreter;
 
-    private Controller(){
-        databaseController = DatabaseController.getInstance();
-        connection = new ClientConnection();
+    public Controller(Socket socket){
+        databaseController = new DatabaseController();
+        connection = new ClientConnection(this, socket);
     }
 
-    public static Controller getInstance(){
-        if(instance == null)
-            instance = new Controller();
-        return instance;
+    public static Socket acceptConnection( ServerSocket serverSocket){
+        try {
+            return serverSocket.accept();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public boolean acceptConnection(){
-        return connection.accept();
-    }
-
-    public void setUpMessage(){
-        messageInterpreter = new MessageInterpreter(connection.getInputStream(), connection.getOutputStream());
+    public void setUpMessage(ObjectInputStream input, ObjectOutputStream output){
+        messageInterpreter = new MessageInterpreter(input, output);
     }
 
     public String read(){
@@ -52,11 +56,11 @@ public class Controller {
     }
 
     public ArrayList<Client> getCustomers(){
-        return databaseController.getInstance().getCustomers();
+        return databaseController.getCustomers();
     }
 
     public ArrayList<Product> getProducts(){
-        return databaseController.getInstance().getProducts();
+        return databaseController.getProducts();
     }
 
     public boolean wantsClientList(String message){
@@ -133,7 +137,6 @@ public class Controller {
 
     public void getRaportProduct(int product){
         write(databaseController.getRaportProduct(product));
-        write(databaseController.hasProduct(product));
     }
 
     public void editProduct(int idProduct, double stock, double pret){
@@ -174,4 +177,8 @@ public class Controller {
         databaseController.editCompany(idClient, name);
     }
 
+    public void close(){
+        databaseController.close();
+        connection.close();
+    }
 }

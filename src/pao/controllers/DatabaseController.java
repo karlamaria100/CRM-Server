@@ -10,17 +10,10 @@ import java.util.ArrayList;
  */
 public class DatabaseController {
 
-    private static DatabaseController instance;
     DataBaseConnection dataBaseConnection;
 
-    private DatabaseController(){
+    public DatabaseController(){
         dataBaseConnection = new DataBaseConnection();
-    }
-
-    public static DatabaseController getInstance(){
-        if(instance == null)
-            instance = new DatabaseController();
-        return instance;
     }
 
     public ArrayList<Client> getCustomers(){
@@ -84,6 +77,10 @@ public class DatabaseController {
 
     public void editCompany(int idClient, String name){
         dataBaseConnection.editCompany(idClient, name);
+    }
+
+    public void close(){
+        dataBaseConnection.close();
     }
 
 }
